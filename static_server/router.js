@@ -10,7 +10,7 @@ const URL = require('url')
 
 
 
-const router = function (req, res) {
+const router = function (req, res, staticPath) {
 	console.log(req.url)
 
 	// 如果路径后面带有查询参数怎么办： /all.json?7900908713156496？ 使用url模块处理 可以得到 /all.json
@@ -22,7 +22,7 @@ const router = function (req, res) {
 			url = 'index.html'
 		}
 		
-		fs.readFile('static/' + url, (err, data) => {
+		fs.readFile(staticPath + url, (err, data) => {
 			if (err) {
 				console.log(err)
 
