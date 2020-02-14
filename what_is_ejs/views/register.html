@@ -5,8 +5,15 @@
     <title>Document</title>
 </head>
 <body>
+
+    <h3>天气：<%= weather%></h3>
     <ul>
-        <li></li>
+
+        <%for( let i = 0; i<name.length; i++) { %>
+            <li><%= name[i] %></li>
+        <% } %>
+       
     </ul>
+    <%- html%>
 </body>
 </html>

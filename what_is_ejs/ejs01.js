@@ -22,7 +22,9 @@ http.createServer( (req, res) => {
     } else if ( url == '/register') {
         ejs.renderFile('views/register.html',{
 
-           name: ['黄健','玛丽','露西','鲁迅']
+           name: ['黄健','玛丽','露西','鲁迅'],
+           weather: 'rainy',
+           html: '<div>hello</div>'
 
         }, (err, data) => {
             
