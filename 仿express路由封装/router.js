@@ -1,6 +1,15 @@
 
 const URL = require('url')
 
+
+const changeRes = function (re) {
+    res.send = function (data) {
+        res.writeHead(200,{"content-Type": "text/html;charset='utf-8'"})
+
+        res.end(data)
+    }
+}
+
 const server = function () {
 
 
@@ -14,13 +23,14 @@ const server = function () {
 
 	let app = function (req, res) {
 
-		let url = URL.parse(req.url).pathname // => /login
+        changeRes(res)
+
+		let url = URL.parse(req.url).pathname + '/' // => /login/
 
 
 		let method = req.method.toLowerCase() // 获取请求方法 get post
 
 		if (all['_'+ method][url]) { // 如果存在这个方法
-
 
 			// 判断是哪个请求 post 还是 get
 			
@@ -34,11 +44,13 @@ const server = function () {
 				req.on('data', (chunk) => {
 
 					data = chunk.toString()
+
 				})
 
 				req.on('end', () => {
 
-					all['_'+ method][url]()
+                    req.body = data
+					all['_'+ method][url](req, res)
 				})
 
 			} else {
@@ -47,20 +59,38 @@ const server = function () {
 				
 				let data = URL.parse(req.url, true).query
 
-				all['_'+ method][url]()
-			}
+                req.body = data
 
-			
+				all['_'+ method][url](req, res)
+			}
 
 		}
 
 	}
-	
-	
 
+    app.get = function (fname, callback) {
+        if (!fname.endsWith('/')) {
+            fname = fname + '/'
+        }
+        if (!fname.startsWith('/')) {
+            fname = '/' + fname 
+        }
+
+        all._get[fname] = callback
+    } 
+    app.post = function (fname, callback) {
+        if (!fname.endsWith('/')) {
+            fname = fname + '/'
+        }
+        if (!fname.startsWith('/')) {
+            fname = '/' + fname 
+        }
+
+        all._post[fname] = callback
+    }
 
 	return app;
 
 }
 
-server()
+module.exports = server()
