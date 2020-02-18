@@ -2,10 +2,9 @@
 const URL = require('url')
 
 
-const changeRes = function (re) {
+const changeRes = function (res) {
     res.send = function (data) {
         res.writeHead(200,{"content-Type": "text/html;charset='utf-8'"})
-
         res.end(data)
     }
 }
