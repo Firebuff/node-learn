@@ -205,7 +205,7 @@ app.get('/updateone', (req, res) => {
 
 app.get('/updatemany', (req, res) => {
 
-	mongoClient.connect(baseUlrl, {}, (err, client) => {
+	mongoClient.connect(baseUlrl, { useNewUrlParser: true, useUnifiedTopology: true }, (err, client) => {
 		if (err) {
 
 			console.log(err)
@@ -235,6 +235,37 @@ app.get('/updatemany', (req, res) => {
 		})
 	})
 
+})
+
+
+// 查询数据
+
+app.get('/list', (req, res) => {
+
+	mongoClient.connect(baseUlrl, { useNewUrlParser: true, useUnifiedTopology: true }, (err, client) => {
+		if (err) {
+			console.log(err)
+			return
+		}
+
+		let db = client.db(baseName)
+
+		db.collection('info').find(). toArray((err, result) => {
+			if (err) {
+				res.send('查询失败')
+				client.close()
+				return
+			}
+			console.log(result)
+
+			// res.send('查询成功')
+			res.json({
+				data: result
+			})
+
+			client.close()
+		})
+	})
 })
 
 
