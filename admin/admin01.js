@@ -1,33 +1,54 @@
 const express = require('express')
 
-const bodyParser = require('body-parser') // å¼•å…¥body-parser å¤„ç†post è¯·æ±‚ä¼ é€’è¿‡æ¥çš„æ•°æ®
+const bodyParser = require('body-parser') // ÒıÈëbody-parser ´¦Àípost ÇëÇó´«µİ¹ıÀ´µÄÊı¾İ
 
 
-const md5 = require('md5'); //  å¼•å…¥åŠ å¯†æ¨¡å—
+const md5 = require('md5'); //  ÒıÈë¼ÓÃÜÄ£¿é
+
+
+const expressSession = require('express-session')
+
+const MongoStore = require('connect-mongo')(expressSession)
+
 
 const app = express()
 
 
-const MongoClient = require('mongodb').MongoClient //å¼•å…¥mongo æ•°æ®åº“æ“ä½œå¼•æ“
+const MongoClient = require('mongodb').MongoClient //ÒıÈëmongo Êı¾İ¿â²Ù×÷ÒıÇæ
 
 
 
-app.set('view engine', 'ejs') //è®¾ç½®æ¨¡æ¿å¼•æ“, ä¸ç”¨require å¼•å…¥ï¼Œå¯ä»¥ç›´æ¥è®¾ç½®
+app.set('view engine', 'ejs') //ÉèÖÃÄ£°åÒıÇæ, ²»ÓÃrequire ÒıÈë£¬¿ÉÒÔÖ±½ÓÉèÖÃ
+
+app.use(expressSession({
+    secret: "I am session",
+    name: 'session_id',
+    resave: false,
+    saveUninitialized: true, 
+    cookie: {
+        maxAge: 1000*60*30 // 30·ÖÖÓÊ§Ğ§
+    },
+    rolling: true,
+    store: new MongoStore({
+        url: 'mongodb://127.0.0.1:27017/user',
+        touchAfter: 60*30 // ¶à¾Ã¸üĞÂÒ»´Î»á»°£¨µ¥Î»ÊÇÃë£©
+    })
+
+}))
 
 
-// ä½¿ç”¨ body-parserï¼Œå¦‚æœè¡¨å•ä½¿ç”¨äº† enctype="multipart/form-data"ï¼Œbody-parseræ˜¯æ— æ³•å¤„ç†çš„ï¼Œè‡ªç„¶ä¹Ÿæ— æ³•è·å–åˆ°postè¯·æ±‚å‚æ•°
+// Ê¹ÓÃ body-parser£¬Èç¹û±íµ¥Ê¹ÓÃÁË enctype="multipart/form-data"£¬body-parserÊÇÎŞ·¨´¦ÀíµÄ£¬×ÔÈ»Ò²ÎŞ·¨»ñÈ¡µ½postÇëÇó²ÎÊı
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 
-// è®¾ç½®é™æ€ç›®å½•
+// ÉèÖÃ¾²Ì¬Ä¿Â¼
 app.use(express.static('public'))
 
 
 
-let dataBaseUrl = 'mongodb://localhost:27017' // æ•°æ®åº“åœ°å€
+let dataBaseUrl = 'mongodb://localhost:27017' // Êı¾İ¿âµØÖ·
 
-let dataBaseName = 'user' // æ•°æ®åº“åå­—
-
+let dataBaseName = 'user' // Êı¾İ¿âÃû×Ö
 
 
 
@@ -35,22 +56,55 @@ app.listen(4000,'127.0.0.1')
 
 
 
-app.get('/', (req,res) => {
+app.use((req, res, next) => {
 
-	res.render('login')
+    let path = req.path
+
+    let routers = ['/admin','/list', '/add']
+
+    // ÅĞ¶ÏÇëÇóµÄÂ·ÓÉÊÇ·ñÔÚ ĞèÒªµÇÂ¼²ÅÄÜ·ÃÎÊµÄÂ·ÓÉÊı×éµ±ÖĞ
+    let isNeedLogin = routers.some((item) => {
+        return path == item
+    })
+
+    // Èç¹û¸ÃÂ·ÓÉĞèÒªµÇÂ¼²ÅÄÜ·ÃÎÊ£¬ÔòÈ¥ÅĞ¶ÏÓÃ»§ÊÇ·ñÒÑ¾­µÇÂ¼£¬ÒÑ¾­µÇÂ¼Ôò·ÅĞĞ£¬Î´µÇÂ¼ÔòÌø×ªµ½loginÒ³Ãæ
+    if (isNeedLogin) {
+        
+        if (req.session.username) {
+            next()
+        } else {
+            res.redirect('/login')
+        }
+    } else if(path == '/login') {
+        if (req.session.username) {
+           res.redirect('/admin')
+        } else {
+           next()
+        }
+    } else {
+        next()
+    }
 
 })
+
+
+app.get('/login', (req,res) => {
+
+    res.render('login')
+
+})
+
 
 app.post('/dologin', (req, res) => {
 
     /*
-        ç™»å½•æ­¥éª¤ï¼š 
+        µÇÂ¼²½Öè£º 
 
-        1. è·å–è¯·æ±‚å‚æ•°ï¼Œå³å‰å° ä¼ é€’è¿‡æ¥çš„ ç”¨æˆ·å å’Œ å¯†ç 
+        1. »ñÈ¡ÇëÇó²ÎÊı£¬¼´Ç°Ì¨ ´«µİ¹ıÀ´µÄ ÓÃ»§Ãû ºÍ ÃÜÂë
 
-        2. æŠŠä¼ é€’è¿‡æ¥çš„ ç”¨æˆ·åå’Œå¯†ç  æŸ¥è¯¢æ•°æ®åº“ï¼Œ çœ‹æ˜¯æ•°æ®åº“ä¸­å¦å­˜åœ¨è¿™ä¸ªç”¨æˆ·
+        2. °Ñ´«µİ¹ıÀ´µÄ ÓÃ»§ÃûºÍÃÜÂë ²éÑ¯Êı¾İ¿â£¬ ¿´ÊÇÊı¾İ¿âÖĞ·ñ´æÔÚÕâ¸öÓÃ»§
 
-        3. ç™»å½•æˆåŠŸåï¼Œ session å…¥åº“ï¼Œå†™å…¥ cookieï¼Œä½œä¸ºå…¶ä»–é¡µé¢æ“ä½œçš„é€šè¡Œå‡­è¯ï¼Œè·³è½¬åˆ°ç”¨æˆ·æƒ³è®¿é—®çš„é¡µé¢
+        3. µÇÂ¼³É¹¦ºó£¬ session Èë¿â£¬Ğ´Èë cookie£¬×÷ÎªÆäËûÒ³Ãæ²Ù×÷µÄÍ¨ĞĞÆ¾Ö¤£¬Ìø×ªµ½ÓÃ»§Ïë·ÃÎÊµÄÒ³Ãæ
 
 
      */
@@ -62,42 +116,68 @@ app.post('/dologin', (req, res) => {
 
     let where = {
         username: username,
-        password: md5(password) // å¯†ç åŠ å¯†ï¼Œ å› ä¸ºç”¨æˆ·æ³¨å†Œæ—¶ï¼Œç”¨æˆ·çš„å¯†ç æ˜¯åŠ å¯†åå†ä¿å­˜åœ¨æ•°æ®åº“ä¸­çš„
+        password: md5(password) // ÃÜÂë¼ÓÃÜ£¬ ÒòÎªÓÃ»§×¢²áÊ±£¬ÓÃ»§µÄÃÜÂëÊÇ¼ÓÃÜºóÔÙ±£´æÔÚÊı¾İ¿âÖĞµÄ
     }
 
-    // é“¾æ¥ æŸ¥è¯¢ æ•°æ®åº“
-    
+    // Á´½Ó ²éÑ¯ Êı¾İ¿â
     MongoClient.connect(dataBaseUrl, { useNewUrlParser: true, useUnifiedTopology: true }, (err, client) => {
 
         if (err) {
             console.log(err)
-            res.send('æ•°æ®åº“è¿æ¥å¤±è´¥')
+            res.send('Êı¾İ¿âÁ¬½ÓÊ§°Ü')
             return
         }
 
-        let db = client.db('user') //é€‰æ‹©å“ªä¸ªæ•°æ®åº“
+        let db = client.db('user') //Ñ¡ÔñÄÄ¸öÊı¾İ¿â
 
 
         db.collection('userinfo').find(where).toArray( (err, result) => {
             if (err) {
                 console.log(err)
-                res.send('æ•°æ®åº“æŸ¥è¯¢å¤±è´¥')
+                res.send('Êı¾İ¿â²éÑ¯Ê§°Ü')
                 return
             }
             
             if (result.length) {
-                res.send('ç™»å½•æˆåŠŸ')
+                req.session.username = 'robert'
+
+                app.locals['username'] = req.session.username
+
+                let tips = `<script>
+                    alert('µÇÂ¼³É¹¦')
+                    window.location.href='/admin';
+                </script>`
+
+                res.send(tips)
+               
             } else {
-                res.send('ç”¨æˆ·åæˆ–è€…å¯†ç ä¸æ­£ç¡®')
+                let tips = `<script>
+                    alert('ÓÃ»§Ãû»òÕßÃÜÂë²»ÕıÈ·')
+                    window.location.href='/';
+                </script>`
+                res.send(tips)
             }
 
-            
         })
 
-
-
     })
-    
-
 
 })
+
+app.get('/admin', (req, res) => {
+
+    res.render('admin')
+})
+
+app.get('/list', (req, res) => {
+
+    res.render('list')
+
+})
+
+app.get('/add', (req, res) => {
+
+    res.render('add')
+
+})
+
