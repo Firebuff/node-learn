@@ -13,9 +13,7 @@ const MongoStore = require('connect-mongo')(expressSession)
 
 const app = express()
 
-
-const MongoClient = require('mongodb').MongoClient //引入mongo 数据库操作引擎
-
+const DB = require('./db/db.js')
 
 
 app.set('view engine', 'ejs') //设置模板引擎, 不用require 引入，可以直接设置
@@ -37,6 +35,7 @@ app.use(expressSession({
 }))
 
 
+
 // 使用 body-parser，如果表单使用了 enctype="multipart/form-data"，body-parser是无法处理的，自然也无法获取到post请求参数
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
@@ -46,17 +45,10 @@ app.use(express.static('public'))
 
 
 
-let dataBaseUrl = 'mongodb://localhost:27017' // 数据库地址
-
-let dataBaseName = 'user' // 数据库名字
-
-
-
 app.listen(4000,'127.0.0.1')
 
 
-
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
 
     let path = req.path
 
@@ -85,7 +77,7 @@ app.use((req, res, next) => {
         next()
     }
 
-})
+})*/
 
 
 app.get('/login', (req,res) => {
@@ -120,7 +112,7 @@ app.post('/dologin', (req, res) => {
     }
 
     // 链接 查询 数据库
-    MongoClient.connect(dataBaseUrl, { useNewUrlParser: true, useUnifiedTopology: true }, (err, client) => {
+  /*  MongoClient.connect(dataBaseUrl, { useNewUrlParser: true, useUnifiedTopology: true }, (err, client) => {
 
         if (err) {
             console.log(err)
@@ -160,7 +152,7 @@ app.post('/dologin', (req, res) => {
 
         })
 
-    })
+    })*/
 
 })
 
@@ -177,6 +169,13 @@ app.get('/list', (req, res) => {
 
 app.get('/add', (req, res) => {
 
-    res.render('add')
+    DB.find('userinfo', {}, 'user', function (err, res) {
+        if (err) {
+            console.log(err)
+            return
+        }
+
+        console.log(res)
+    })
 })
 
